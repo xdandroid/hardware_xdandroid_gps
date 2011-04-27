@@ -12,7 +12,13 @@
 #include <hardware/gps.h>
 
 #if defined(ANDROID)
+#define  LOG_TAG  "gps_rpc"
+#include <cutils/log.h>
 #include <cutils/properties.h>
+#endif
+
+#ifndef ANDROID
+#define LOGD(fmt, x...) printf(fmt, ##x)
 #endif
 
 typedef struct registered_server_struct {
@@ -91,10 +97,10 @@ static int pdsm_client_init(struct CLIENT *clnt, int client) {
 	par.length=1;
 	par.data[0]=client;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x2 : 0x3, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_init(%x) failed\n", client);
+		LOGD("pdsm_client_init(%x) failed\n", client);
 		exit(-1);
 	}
-	printf("pdsm_client_init(%x)=%x\n", client, res);
+	LOGD("pdsm_client_init(%x)=%x\n", client, res);
 	client_IDs[client]=res;
 	return 0;
 }
@@ -109,10 +115,10 @@ int pdsm_atl_l2_proxy_reg(struct CLIENT *clnt, int val0, int val1, int val2) {
 	par.data[1]=val1;
 	par.data[2]=val2;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x3 : 0x4, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_atl_l2_proxy_reg(%x, %x, %x) failed\n", par.data[0], par.data[1], par.data[2]);
+		LOGD("pdsm_atl_l2_proxy_reg(%x, %x, %x) failed\n", par.data[0], par.data[1], par.data[2]);
 		exit(-1);
 	}
-	printf("pdsm_atl_l2_proxy_reg(%x, %x, %x)=%x\n", par.data[0], par.data[1], par.data[2], res);
+	LOGD("pdsm_atl_l2_proxy_reg(%x, %x, %x)=%x\n", par.data[0], par.data[1], par.data[2], res);
 	return res;
 }
 
@@ -125,10 +131,10 @@ int pdsm_atl_dns_proxy_reg(struct CLIENT *clnt, int val0, int val1) {
 	par.data[0]=val0;
 	par.data[1]=val1;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x6 : 0x7 , xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_atl_dns_proxy_reg(%x, %x) failed\n", par.data[0], par.data[1]);
+		LOGD("pdsm_atl_dns_proxy_reg(%x, %x) failed\n", par.data[0], par.data[1]);
 		exit(-1);
 	}
-	printf("pdsm_atl_dns_proxy(%x, %x)=%x\n", par.data[0], par.data[1], res);
+	LOGD("pdsm_atl_dns_proxy(%x, %x)=%x\n", par.data[0], par.data[1], res);
 	return res;
 }
 
@@ -145,10 +151,10 @@ int pdsm_client_pd_reg(struct CLIENT *clnt, int client, int val0, int val1, int 
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x4 : 0x5, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGD("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	printf("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGD("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -165,10 +171,10 @@ int pdsm_client_pa_reg(struct CLIENT *clnt, int client, int val0, int val1, int 
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x5 : 0x6, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGD("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	printf("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGD("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -185,10 +191,10 @@ int pdsm_client_lcs_reg(struct CLIENT *clnt, int client, int val0, int val1, int
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x6 : 0x7, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGD("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	printf("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGD("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -205,12 +211,12 @@ int pdsm_client_ext_status_reg(struct CLIENT *clnt, int client, int val0, int va
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x8 : 0x9, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGD("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		free(par.data);
 		exit(-1);
 	}
 
-	printf("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGD("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -227,11 +233,11 @@ int pdsm_client_xtra_reg(struct CLIENT *clnt, int client, int val0, int val1, in
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x7 :0x8, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGD("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
 
-	printf("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGD("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -243,11 +249,11 @@ int pdsm_client_act(struct CLIENT *clnt, int client) {
 	par.length=1;
 	par.data[0]=client_IDs[client];
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x9 : 0xa, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_act(%d) failed\n", par.data[0]);
+		LOGD("pdsm_client_act(%d) failed\n", par.data[0]);
 		exit(-1);
 	}
 
-	printf("pdsm_client_act(%d)=%d\n", par.data[0], res);
+	LOGD("pdsm_client_act(%d)=%d\n", par.data[0], res);
 	return res;
 }
 
@@ -286,10 +292,10 @@ int pdsm_get_position(struct CLIENT *clnt, int val0, int val1, int val2, int val
 	par.data[26]=val26;
 	par.data[27]=val27;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xb : 0xc, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_get_position() failed\n");
+		LOGD("pdsm_client_get_position() failed\n");
 		exit(-1);
 	}
-	printf("pdsm_client_get_position()=%d\n", res);
+	LOGD("pdsm_client_get_position()=%d\n", res);
 	return res;
 }
 
@@ -426,15 +432,15 @@ void dispatch(struct svc_req* a, registered_server* svc) {
 	uint32_t *data = (uint32_t*)svc->xdr->in_msg;
 	uint32_t result=0;
 	uint32_t svid=ntohl(data[3]);
-	printf("received some kind of event\n");
+	LOGD("received some kind of event\n");
 	for(i=0;i< svc->xdr->in_len/4;++i) {
-		printf("%08x ", ntohl(data[i]));
+		LOGD("%08x ", ntohl(data[i]));
 	}
-	printf("\n");
+	LOGD("\n");
 	for(i=0;i< svc->xdr->in_len/4;++i) {
-		printf("%010d ", ntohl(data[i]));
+		LOGD("%010d ", ntohl(data[i]));
 	}
-	printf("\n");
+	LOGD("\n");
 	if(svid==0x3100005b) {
 		dispatch_pdsm(data);
 	} else if(svid==0x3100001d) {
@@ -457,11 +463,11 @@ int pdsm_client_end_session(struct CLIENT *clnt, int id, int client) {
 	par.data[2]=0;
 	par.data[3]=client_IDs[client];
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xd : 0xe, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		printf("pdsm_client_end_session(%x, 0, 0, %x) failed\n", id, client_IDs[client]);
+		LOGD("pdsm_client_end_session(%x, 0, 0, %x) failed\n", id, client_IDs[client]);
 		exit(-1);
 	}
 
-	printf("pdsm_client_end_session(%x, 0, 0, %x)=%x\n", id, client_IDs[client], res);
+	LOGD("pdsm_client_end_session(%x, 0, 0, %x)=%x\n", id, client_IDs[client], res);
 	return 0;
 }
 
@@ -476,11 +482,11 @@ static int init_gps6125() {
 	svc_register(svc, 0x3100005b, 0, (__dispatch_fn_t) dispatch,0);
 	svc_register(svc, 0x3100001d, 0/*xb93145f7*/, (__dispatch_fn_t) dispatch,0);
 	if(!clnt) {
-		printf("Failed creating client\n");
+		LOGD("Failed creating client\n");
 		return -1;
 	}
 	if(!svc) {
-		printf("Failed creating server\n");
+		LOGD("Failed creating server\n");
 		return -2;
 	}
 
@@ -512,11 +518,11 @@ static int init_gps5225() {
 	svc_register(svc, 0x3100005b, 0, (__dispatch_fn_t) dispatch,0);
 	svc_register(svc, 0x3100001d, 0/*xb93145f7*/, (__dispatch_fn_t) dispatch,0);
 	if(!clnt) {
-		printf("Failed creating client\n");
+		LOGD("Failed creating client\n");
 		return -1;
 	}
 	if(!svc) {
-		printf("Failed creating server\n");
+		LOGD("Failed creating server\n");
 		return -2;
 	}
 
@@ -587,7 +593,7 @@ static int init_gps_android_props(void) {
 
 	version += atoi(tok);
 
-	printf("%s: amss version=%d\n", __func__, version);
+	LOGD("%s: amss version=%d\n", __func__, version);
 	switch (version) {
 		case 5225:
 		case 6150:
