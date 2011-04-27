@@ -8,9 +8,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <librpc/rpc/rpc_router_ioctl.h>
-//#include <debug.h>
 #include <pthread.h>
 #include <hardware/gps.h>
+
+#if defined(ANDROID)
+#include <cutils/properties.h>
+#endif
 
 typedef struct registered_server_struct {
 	/* MUST BE AT OFFSET ZERO!  The client code assumes this when it overwrites
@@ -77,7 +80,8 @@ static struct timeval timeout;
 static enum {
 	A5225,
 	A6125,
-} amss;
+	INVALID_AMSS,
+} amss = INVALID_AMSS;
 
 static int pdsm_client_init(struct CLIENT *clnt, int client) {
 	struct params par;
@@ -461,7 +465,7 @@ int pdsm_client_end_session(struct CLIENT *clnt, int id, int client) {
 	return 0;
 }
 
-int init_gps6125() {
+static int init_gps6125() {
 	struct CLIENT *clnt=clnt_create(NULL, 0x3000005B, 0, NULL);
 	struct CLIENT *clnt_atl=clnt_create(NULL, 0x3000001D, 0, NULL);
 	int i;
@@ -497,8 +501,7 @@ int init_gps6125() {
 	return 0;
 }
 
-
-int init_gps5225() {
+static int init_gps5225() {
 	struct CLIENT *clnt=clnt_create(NULL, 0x3000005B, 0, NULL);
 	struct CLIENT *clnt_atl=clnt_create(NULL, 0x3000001D, 0, NULL);
 	int i;
@@ -534,23 +537,82 @@ int init_gps5225() {
 	return 0;
 }
 
+static int init_gps_htc_hw(void) {
+	int fd;
+	char buf[4] = {};
+	fd = open("/sys/class/htc_hw/amss", O_RDONLY);
+	if (fd < 0)
+		return fd;
+
+	read(fd, buf, 4);
+	close(fd);
+
+	if(!strncmp(buf, "6125", 4))
+		amss = A6125;
+	else if((!strncmp(buf, "5225", 4)) || (!strncmp(buf, "6150", 4)))
+		amss = A5225;
+	else
+		amss = A6125; //Fallback to 6125 ATM
+
+	switch (amss) {
+		case A6125:
+			return init_gps6125();
+		case A5225:
+			return init_gps5225();
+		default:
+			break;
+	}
+	return -1;
+}
+
+#if defined(ANDROID)
+static int init_gps_android_props(void) {
+	char buf[PROPERTY_VALUE_MAX];
+	char *tok;
+	int version;
+
+	if (!property_get("gsm.version.baseband", buf, "0.0.0.0"))
+		return -1;
+	tok = strtok(buf, ".");
+	version = 100 * atoi(tok);
+	tok = strtok(NULL, ".");
+
+	//skip second number
+	if (!tok)
+		return -1;
+	//bail out if we could not parse amss version
+	tok = strtok(NULL, ".");
+	if (!tok)
+		return -1;
+
+	version += atoi(tok);
+
+	printf("%s: amss version=%d\n", __func__, version);
+	switch (version) {
+		case 5225:
+		case 6150:
+			return init_gps5225();
+
+		case 6125:
+		default:
+			return init_gps6125();
+	}
+
+	return -1;
+}
+#endif
 
 int init_gps_rpc() {
-	int fd=open("/sys/class/htc_hw/amss", O_RDONLY);
-	char buf[32];
-	bzero(buf, 32);
-	read(fd, buf, 32);
-	if(strncmp(buf, "6125", 4)==0)
-		amss=A6125;
-	else if((strncmp(buf, "5225", 4)==0) || (strncmp(buf, "6150", 4)==0))
-		amss=A5225;
-	else
-		amss=A6125; //Fallback to 6125 ATM
-	if(amss==A6125)
-		init_gps6125();
-	else if(amss==A5225)
-		init_gps5225();
-	return 0;
+	int rc;
+	rc = init_gps_htc_hw();
+	if (!rc)
+		return 0;
+
+#if defined(ANDROID)
+	return init_gps_android_props();
+#endif
+
+	return -1;
 }
 
 void gps_get_position() {
