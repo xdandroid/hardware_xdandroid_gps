@@ -212,7 +212,6 @@ int pdsm_client_ext_status_reg(struct CLIENT *clnt, int client, int val0, int va
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x8 : 0x9, xdr_args, &par, xdr_result_int, &res, timeout)) {
 		LOGD("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
-		free(par.data);
 		exit(-1);
 	}
 
