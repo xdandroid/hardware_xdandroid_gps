@@ -596,10 +596,12 @@ static int init_gps_android_props(void) {
 	switch (version) {
 		case 5225:
 		case 6150:
+			amss = A5225;
 			return init_gps5225();
 
 		case 6125:
 		default:
+			amss = A6125;
 			return init_gps6125();
 	}
 
