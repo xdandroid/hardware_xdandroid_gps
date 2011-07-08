@@ -12,13 +12,14 @@
 #include <hardware/gps.h>
 
 #if defined(ANDROID)
+#define LOG_NDEBUG 1
 #define  LOG_TAG  "gps_rpc"
 #include <cutils/log.h>
 #include <cutils/properties.h>
-#endif
-
-#ifndef ANDROID
-#define LOGD(fmt, x...) printf(fmt, ##x)
+#else
+#define LOGV(fmt, x...) printf(fmt, ##x)
+#define LOGI LOGV
+#define LOGE LOGV
 #endif
 
 typedef struct registered_server_struct {
@@ -97,10 +98,10 @@ static int pdsm_client_init(struct CLIENT *clnt, int client) {
 	par.length=1;
 	par.data[0]=client;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x2 : 0x3, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_init(%x) failed\n", client);
+		LOGV("pdsm_client_init(%x) failed\n", client);
 		exit(-1);
 	}
-	LOGD("pdsm_client_init(%x)=%x\n", client, res);
+	LOGV("pdsm_client_init(%x)=%x\n", client, res);
 	client_IDs[client]=res;
 	return 0;
 }
@@ -115,10 +116,10 @@ int pdsm_atl_l2_proxy_reg(struct CLIENT *clnt, int val0, int val1, int val2) {
 	par.data[1]=val1;
 	par.data[2]=val2;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x3 : 0x4, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_atl_l2_proxy_reg(%x, %x, %x) failed\n", par.data[0], par.data[1], par.data[2]);
+		LOGV("pdsm_atl_l2_proxy_reg(%x, %x, %x) failed\n", par.data[0], par.data[1], par.data[2]);
 		exit(-1);
 	}
-	LOGD("pdsm_atl_l2_proxy_reg(%x, %x, %x)=%x\n", par.data[0], par.data[1], par.data[2], res);
+	LOGV("pdsm_atl_l2_proxy_reg(%x, %x, %x)=%x\n", par.data[0], par.data[1], par.data[2], res);
 	return res;
 }
 
@@ -131,10 +132,10 @@ int pdsm_atl_dns_proxy_reg(struct CLIENT *clnt, int val0, int val1) {
 	par.data[0]=val0;
 	par.data[1]=val1;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x6 : 0x7 , xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_atl_dns_proxy_reg(%x, %x) failed\n", par.data[0], par.data[1]);
+		LOGV("pdsm_atl_dns_proxy_reg(%x, %x) failed\n", par.data[0], par.data[1]);
 		exit(-1);
 	}
-	LOGD("pdsm_atl_dns_proxy(%x, %x)=%x\n", par.data[0], par.data[1], res);
+	LOGV("pdsm_atl_dns_proxy(%x, %x)=%x\n", par.data[0], par.data[1], res);
 	return res;
 }
 
@@ -151,10 +152,10 @@ int pdsm_client_pd_reg(struct CLIENT *clnt, int client, int val0, int val1, int 
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x4 : 0x5, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGV("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	LOGD("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGV("pdsm_client_pd_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -171,10 +172,10 @@ int pdsm_client_pa_reg(struct CLIENT *clnt, int client, int val0, int val1, int 
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x5 : 0x6, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGV("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	LOGD("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGV("pdsm_client_pa_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -191,10 +192,10 @@ int pdsm_client_lcs_reg(struct CLIENT *clnt, int client, int val0, int val1, int
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x6 : 0x7, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGV("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
-	LOGD("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGV("pdsm_client_lcs_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -211,11 +212,11 @@ int pdsm_client_ext_status_reg(struct CLIENT *clnt, int client, int val0, int va
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x8 : 0x9, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGV("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
 
-	LOGD("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGV("pdsm_client_ext_status_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -232,11 +233,11 @@ int pdsm_client_xtra_reg(struct CLIENT *clnt, int client, int val0, int val1, in
 	par.data[4]=val3;
 	par.data[5]=val4;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x7 :0x8, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
+		LOGV("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d) failed\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5]);
 		exit(-1);
 	}
 
-	LOGD("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
+	LOGV("pdsm_client_xtra_reg(%d, %d, %d, %d, %d, %d)=%d\n", par.data[0], par.data[1], par.data[2], par.data[3], par.data[4], par.data[5], res);
 	return res;
 }
 
@@ -248,15 +249,15 @@ int pdsm_client_act(struct CLIENT *clnt, int client) {
 	par.length=1;
 	par.data[0]=client_IDs[client];
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0x9 : 0xa, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_act(%d) failed\n", par.data[0]);
+		LOGV("pdsm_client_act(%d) failed\n", par.data[0]);
 		exit(-1);
 	}
 
-	LOGD("pdsm_client_act(%d)=%d\n", par.data[0], res);
+	LOGV("pdsm_client_act(%d)=%d\n", par.data[0], res);
 	return res;
 }
 
-int pdsm_get_position(struct CLIENT *clnt, int val0, int val1, int val2, int val3, int val4, int val5, int val6, int val7, int val8, int val9, int val10, int val11, int val12, int val13, int val14, int val15, int val16, int val17, int val18, int val19, int val20, int val21, int val22, int val23, int val24, int val25, int val26, int val27) {
+int pdsm_client_get_position(struct CLIENT *clnt, int val0, int val1, int val2, int val3, int val4, int val5, int val6, int val7, int val8, int val9, int val10, int val11, int val12, int val13, int val14, int val15, int val16, int val17, int val18, int val19, int val20, int val21, int val22, int val23, int val24, int val25, int val26, int val27) {
 	struct params par;
 	uint32_t res;
 	uint32_t data[28];
@@ -291,10 +292,10 @@ int pdsm_get_position(struct CLIENT *clnt, int val0, int val1, int val2, int val
 	par.data[26]=val26;
 	par.data[27]=val27;
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xb : 0xc, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_get_position() failed\n");
+		LOGV("pdsm_client_get_position() failed\n");
 		exit(-1);
 	}
-	LOGD("pdsm_client_get_position()=%d\n", res);
+	LOGV("pdsm_client_get_position()=%d\n", res);
 	return res;
 }
 
@@ -320,6 +321,7 @@ extern void update_gps_location(GpsLocation *fix);
 
 void dispatch_pdsm_pd(uint32_t *data) {
 	uint32_t event=ntohl(data[2]);
+	LOGV("dispatch_pdsm_pd(): event=0x%x",event);
 	if(event&PDSM_PD_EVENT_GPS_BEGIN) {
 		//Navigation started.
 		update_gps_status(GPS_STATUS_SESSION_BEGIN);
@@ -329,7 +331,7 @@ void dispatch_pdsm_pd(uint32_t *data) {
 		update_gps_status(GPS_STATUS_SESSION_END);
 	}
 	GpsLocation fix;
-	fix.flags = 0;
+	memset(&fix,0,sizeof(GpsLocation));
 	if(event&PDSM_PD_EVENT_POS) {
 
 		GpsSvStatus ret;
@@ -385,8 +387,17 @@ void dispatch_pdsm_pd(uint32_t *data) {
 		fix.flags |= GPS_LOCATION_HAS_ALTITUDE;
 		fix.altitude = (double)ntohl(data[64]) / 10.0f;
 	}
-	if (fix.flags)
+	/*
+	We get frequent PDSM_PD_EVENT_HEIGHTs when not locked.
+	This should never happen - there is no way to know height
+	(3D fix,4+ sats) when we don't know position (2D fix, 3 sats)
+	without a barometer - there is no known mobile phone HW with
+	a barometric sensor
+	As a result - don't update position unless we have lat/long
+	*/
+	if (fix.flags & GPS_LOCATION_HAS_LAT_LONG)
 	{
+		LOGV("updating GPS location");
 		update_gps_location(&fix);
 	}
 	if(event&PDSM_PD_EVENT_DONE)
@@ -397,6 +408,8 @@ void dispatch_pdsm_ext(uint32_t *data) {
 
 	GpsSvStatus ret;
 	int i;
+
+	LOGV("dispatch_pdsm_ext()");
 
 	ret.num_svs=ntohl(data[7]);
 	for(i=0;i<ret.num_svs;++i) {
@@ -419,7 +432,8 @@ void dispatch_pdsm(uint32_t *data) {
 		dispatch_pdsm_pd(&(data[10]));
 	else if(procid==4)
 		dispatch_pdsm_ext(&(data[10]));
-
+	else
+		LOGE("dispatch_pdsm() received unknown procid: %d",procid);
 }
 
 void dispatch_atl(uint32_t *data) {
@@ -431,21 +445,21 @@ void dispatch(struct svc_req* a, registered_server* svc) {
 	uint32_t *data = (uint32_t*)svc->xdr->in_msg;
 	uint32_t result=0;
 	uint32_t svid=ntohl(data[3]);
-	LOGD("received some kind of event\n");
+	LOGV("received some kind of event\n");
 	for(i=0;i< svc->xdr->in_len/4;++i) {
-		LOGD("%08x ", ntohl(data[i]));
+		LOGV("%08x ", ntohl(data[i]));
 	}
-	LOGD("\n");
+	LOGV("\n");
 	for(i=0;i< svc->xdr->in_len/4;++i) {
-		LOGD("%010d ", ntohl(data[i]));
+		LOGV("%010d ", ntohl(data[i]));
 	}
-	LOGD("\n");
+	LOGV("\n");
 	if(svid==0x3100005b) {
 		dispatch_pdsm(data);
 	} else if(svid==0x3100001d) {
 		dispatch_atl(data);
 	} else {
-		//Got dispatch for unknown serv id!
+		LOGE("%s: dispatch for unknown server id=0x%08x\n", __func__, svid);
 	}
 	//ACK
 	svc_sendreply((struct SVCXPRT*) svc, (xdrproc_t) xdr_int, (caddr_t) &result);
@@ -462,11 +476,11 @@ int pdsm_client_end_session(struct CLIENT *clnt, int id, int client) {
 	par.data[2]=0;
 	par.data[3]=client_IDs[client];
 	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xd : 0xe, xdr_args, &par, xdr_result_int, &res, timeout)) {
-		LOGD("pdsm_client_end_session(%x, 0, 0, %x) failed\n", id, client_IDs[client]);
+		LOGV("pdsm_client_end_session(%x, 0, 0, %x) failed\n", id, client_IDs[client]);
 		exit(-1);
 	}
 
-	LOGD("pdsm_client_end_session(%x, 0, 0, %x)=%x\n", id, client_IDs[client], res);
+	LOGV("pdsm_client_end_session(%x, 0, 0, %x)=%x\n", id, client_IDs[client], res);
 	return 0;
 }
 
@@ -481,11 +495,11 @@ static int init_gps6125() {
 	svc_register(svc, 0x3100005b, 0, (__dispatch_fn_t) dispatch,0);
 	svc_register(svc, 0x3100001d, 0/*xb93145f7*/, (__dispatch_fn_t) dispatch,0);
 	if(!clnt) {
-		LOGD("Failed creating client\n");
+		LOGE("Failed creating client\n");
 		return -1;
 	}
 	if(!svc) {
-		LOGD("Failed creating server\n");
+		LOGE("Failed creating server\n");
 		return -2;
 	}
 
@@ -517,11 +531,11 @@ static int init_gps5225() {
 	svc_register(svc, 0x3100005b, 0, (__dispatch_fn_t) dispatch,0);
 	svc_register(svc, 0x3100001d, 0/*xb93145f7*/, (__dispatch_fn_t) dispatch,0);
 	if(!clnt) {
-		LOGD("Failed creating client\n");
+		LOGE("Failed creating client\n");
 		return -1;
 	}
 	if(!svc) {
-		LOGD("Failed creating server\n");
+		LOGE("Failed creating server\n");
 		return -2;
 	}
 
@@ -592,7 +606,7 @@ static int init_gps_android_props(void) {
 
 	version += atoi(tok);
 
-	LOGD("%s: amss version=%d\n", __func__, version);
+	LOGI("%s: amss version=%d\n", __func__, version);
 	switch (version) {
 		case 5225:
 		case 6150:
@@ -624,9 +638,12 @@ int init_gps_rpc() {
 
 void gps_get_position() {
 	int i;
-	for(i=5;i;--i) if(!can_send) sleep(1);//Time out of 5 seconds on can_send
-	can_send=0;
-	pdsm_get_position(_clnt, 0, 0, 1, 1, 1, 0x3B9AC9FF, 1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,32,2,client_IDs[2]);
+	for (i = 5; i && !can_send ; --i) {
+		LOGV("%s: waiting for can_send ...\n", __func__);
+		sleep(1);
+	}
+	can_send = 0;
+	pdsm_client_get_position(_clnt, 0, 0, 1, 1, 1, 0x3B9AC9FF, 1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,32,2,client_IDs[2]);
 }
 
 void exit_gps_rpc() {
