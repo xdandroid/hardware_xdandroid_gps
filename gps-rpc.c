@@ -638,10 +638,10 @@ int init_gps_rpc() {
 
 void gps_get_position() {
 	int i;
-	for (i = 5; i && !can_send ; --i) {
-		LOGV("%s: waiting for can_send ...\n", __func__);
-		sleep(1);
+	for (i = 0; i <= 5000 && !can_send; i += 100) {
+		usleep(100000);
 	}
+	LOGV("%s: waited %dms for can_send\n", __func__, i);
 	can_send = 0;
 	pdsm_client_get_position(_clnt, 0, 0, 1, 1, 1, 0x3B9AC9FF, 1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,32,2,client_IDs[2]);
 }
