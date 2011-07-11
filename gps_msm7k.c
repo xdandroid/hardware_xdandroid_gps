@@ -752,9 +752,6 @@ static void gps_state_thread( void*  arg ) {
 				LOGE("epoll_wait() unexpected error: %s", strerror(errno));
 			continue;
 		}
-		if (nevents == 0 && started) {
-			gps_get_position();
-		}
 		for (ne = 0; ne < nevents; ne++) {
 			if ((events[ne].events & (EPOLLERR|EPOLLHUP)) != 0) {
 				LOGE("EPOLLERR or EPOLLHUP after epoll_wait() !?");
@@ -814,6 +811,9 @@ static void gps_state_thread( void*  arg ) {
 					LOGE("epoll_wait() returned unkown fd %d ?", fd);
 				}
 			}
+		}
+		if (started) {
+			gps_get_position();
 		}
 	}
 Exit:
