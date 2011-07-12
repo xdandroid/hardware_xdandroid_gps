@@ -7,7 +7,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define LOG_NDEBUG 0
+#define LOG_NDEBUG 1
 #define  LOG_TAG  "gps_msm7k"
 #include <cutils/log.h>
 #include <cutils/sockets.h>
@@ -748,7 +748,7 @@ static void gps_state_thread( void*  arg ) {
 		nevents = epoll_wait( epoll_fd, events, gps_fd>-1 ? 2 : 1,
 			started ? (int)scan_interval : -1);
 		if (nevents < 0) {
-			//if (errno != EINTR)
+			if (errno != EINTR)
 				LOGE("epoll_wait() unexpected error: %s", strerror(errno));
 			continue;
 		}
