@@ -7,7 +7,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#define LOG_NDEBUG 1
+#define LOG_NDEBUG 0
 #define  LOG_TAG  "gps_msm7k"
 #include <cutils/log.h>
 #include <cutils/sockets.h>
@@ -15,7 +15,7 @@
 
 #include <hardware/gps.h>
 
-#define  GPS_DEBUG  1
+#define  GPS_DEBUG  0
 
 #if GPS_DEBUG
 #  define  D(...)   LOGD(__VA_ARGS__)
@@ -761,32 +761,45 @@ static void gps_state_thread( void*  arg ) {
 				int  fd = events[ne].data.fd;
 
 				if (fd == control_fd) {
-					char  cmd = 255;
 					int   ret;
+					int   i;
+					char  buf[255];
+					int   update_handled = 0;
+					memset(buf, 0xff, 255);
 					V("%s: control fd event", __func__);
 					do {
-						ret = read( fd, &cmd, 1 );
+						ret = read(fd, buf, 255);
 					} while (ret < 0 && errno == EINTR);
 
-					if (cmd == CMD_QUIT) {
-						V("%s: quit", __func__);
-						gps_status.status = GPS_STATUS_ENGINE_OFF;
-						if(state->callbacks.status_cb)
-							state->callbacks.status_cb(&gps_status);
-						goto Exit;
-					} else if (cmd == CMD_START) {
-						if (!started) {
-							V("%s: start", __func__);
-							started = 1;
+					for (i = 0; i < ret && buf[i] != 0xff; i++) {
+						char cmd = buf[i];
+						V("%s: handling cmd=%d\n", __func__, cmd);
+						if (cmd == CMD_QUIT) {
+							V("%s: quit", __func__);
+							gps_status.status = GPS_STATUS_ENGINE_OFF;
+							if(state->callbacks.status_cb)
+								state->callbacks.status_cb(&gps_status);
+							goto Exit;
+						} else if (cmd == CMD_START) {
+							if (!started) {
+								V("%s: start", __func__);
+								started = 1;
+							}
+						} else if (cmd == CMD_STOP) {
+							if (started) {
+								V("%s: stop", __func__);
+								started = 0;
+								exit_gps_rpc();
+							}
+						} else if (cmd == CMD_SEND) {
+							/* Don't try sending update events when we already
+							 * have in this run.
+							 */
+							if (!update_handled) {
+								send_update_events(state);
+								update_handled = 1;
+							}
 						}
-					} else if (cmd == CMD_STOP) {
-						if (started) {
-							V("%s: stop", __func__);
-							started = 0;
-							exit_gps_rpc();
-						}
- 					} else if (cmd == CMD_SEND) {
-						send_update_events(state);
 					}
 				} else if (fd == gps_fd) {
 					char  buff[32];
