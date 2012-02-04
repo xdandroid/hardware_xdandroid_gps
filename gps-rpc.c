@@ -22,6 +22,13 @@
 #define LOGE LOGV
 #endif
 
+#define XTRA_DEBUG 1
+#if XTRA_DEBUG
+#  define  pr_dbg_xtra(...)   LOGD(__VA_ARGS__)
+#else
+#  define  pr_dbg_xtra(...)   ((void)0)
+#endif
+
 typedef struct registered_server_struct {
 	/* MUST BE AT OFFSET ZERO!  The client code assumes this when it overwrites
 	 * the XDR for server entries which represent a callback client.  Those
@@ -70,6 +77,26 @@ struct params {
 };
 static struct CLIENT *_clnt;
 
+typedef struct pdsm_xtra_time_info {
+	uint32_t uncertainty;
+	uint64_t time_utc;
+	bool_t ref_to_utc_time;
+	bool_t force_flag;
+} pdsm_xtra_time_info_type;
+
+struct xtra_time_params {
+	uint32_t *data;
+	pdsm_xtra_time_info_type *time_info_ptr;
+};
+
+struct xtra_data_params {
+	uint32_t *data;
+	unsigned char *xtra_data_ptr;
+	uint32_t part_len;
+	uint8_t part;
+	uint8_t total_parts;
+};
+
 static bool_t xdr_args(XDR *clnt, struct params *par) {
 	int i;
 	uint32_t val=0;
@@ -80,6 +107,61 @@ static bool_t xdr_args(XDR *clnt, struct params *par) {
 
 static bool_t xdr_result_int(XDR *clnt, uint32_t *result) {
 	XDR_RECV_UINT32(clnt, result);
+	return 1;
+}
+
+static bool_t xdr_xtra_data_args(XDR *xdrs, struct xtra_data_params *xtra_data) {
+	pr_dbg_xtra("%s() is called: 0x%x, %d, %d, %d, 0x%x", __FUNCTION__,
+		(int) xtra_data->xtra_data_ptr, xtra_data->part_len, xtra_data->part,
+		xtra_data->total_parts, xtra_data->data[3]);
+
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_data->data[0]))
+		return 0;
+	if (!xdr_int(xdrs, (int *) &xtra_data->data[1]))
+		return 0;
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_data->data[2]))
+		return 0;
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_data->part_len))
+		return 0;
+	if (!xdr_bytes(xdrs, (char **)&xtra_data->xtra_data_ptr, (u_int *)&xtra_data->part_len, ~0))
+		return 0;
+	if (!xdr_u_char(xdrs, &xtra_data->part))
+		return 0;
+	if (!xdr_u_char(xdrs, &xtra_data->total_parts))
+		return 0;
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_data->data[3]))
+		return 0;
+
+	return 1;
+}
+
+bool_t xdr_pdsm_xtra_time_info(XDR *xdrs, pdsm_xtra_time_info_type *time_info_ptr) {
+	pr_dbg_xtra("%s() is called: %lld, %d", __FUNCTION__, time_info_ptr->time_utc, time_info_ptr->uncertainty);
+
+	if (!xdr_u_quad_t(xdrs, &time_info_ptr->time_utc))
+		return 0;
+	if (!xdr_u_long(xdrs, (u_long *) &time_info_ptr->uncertainty))
+		return 0;
+	if (!xdr_u_char(xdrs, (u_char *) &time_info_ptr->ref_to_utc_time))
+		return 0;
+	if (!xdr_u_char(xdrs, (u_char *) &time_info_ptr->force_flag))
+		return 0;
+
+	return 1;
+}
+
+static bool_t xdr_xtra_time_args(XDR *xdrs, struct xtra_time_params *xtra_time) {
+	pr_dbg_xtra("%s() is called", __FUNCTION__);
+
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_time->data[0]))
+		return 0;
+	if (!xdr_int(xdrs, (int *) &xtra_time->data[1]))
+		return 0;
+	if (!xdr_u_long(xdrs, (u_long *) &xtra_time->data[2]))
+		return 0;
+	if (!xdr_pointer(xdrs, (char **) &xtra_time->time_info_ptr, sizeof(pdsm_xtra_time_info_type), (xdrproc_t) xdr_pdsm_xtra_time_info))
+		return 0;
+
 	return 1;
 }
 
@@ -257,6 +339,52 @@ int pdsm_client_act(struct CLIENT *clnt, int client) {
 	return res;
 }
 
+int pdsm_xtra_set_data(struct CLIENT *clnt, int val0, int client_ID, int val2, unsigned char *xtra_data_ptr, uint32_t part_len, uint8_t part, uint8_t total_parts, int val3) {
+	struct xtra_data_params xtra_data;
+	uint32_t res = -1;
+	uint32_t par_data[4];
+	xtra_data.data=par_data;
+	xtra_data.data[0]=val0;
+	xtra_data.data[1]=client_ID;
+	xtra_data.data[2]=val2;
+	xtra_data.xtra_data_ptr = xtra_data_ptr;
+	xtra_data.part_len      = part_len;
+	xtra_data.part          = (uint32_t) part;
+	xtra_data.total_parts   = (uint32_t) total_parts;
+	xtra_data.data[3]=val3;
+	enum clnt_stat cs = -1;
+	cs = CLNT_CALL_CAST(clnt, 0x1A, xdr_xtra_data_args, &xtra_data, xdr_result_int, &res, timeout);
+	if (cs != RPC_SUCCESS){
+		pr_dbg_xtra("pdsm_xtra_set_data(%x, %x, %d, 0x%x, %d, %d, %d, %d) failed\n", val0, client_ID, val2,
+			(int) xtra_data_ptr, part_len, part, total_parts, val3);
+		exit(-1);
+	}
+	pr_dbg_xtra("pdsm_xtra_set_data(%x, %x, %d, 0x%x, %d, %d, %d, %d)=%d, cs=%d\n", val0, client_ID, val2,
+		(int) xtra_data_ptr, part_len, part, total_parts, val3, res, cs);
+	return res;
+}
+
+int pdsm_xtra_inject_time_info(struct CLIENT *clnt, int val0, int client_ID, int val2, pdsm_xtra_time_info_type *time_info_ptr) {
+	struct xtra_time_params xtra_time;
+	uint32_t res = -1;
+	uint32_t par_data[3];
+	xtra_time.data=par_data;
+	xtra_time.data[0]=val0;
+	xtra_time.data[1]=client_ID;
+	xtra_time.data[2]=val2;
+	xtra_time.time_info_ptr = time_info_ptr;
+	enum clnt_stat cs = -1;
+	cs = CLNT_CALL_CAST(clnt, 0x1E, xdr_xtra_time_args, &xtra_time, xdr_result_int, &res, timeout);
+	if (cs != RPC_SUCCESS){
+		pr_dbg_xtra("pdsm_xtra_inject_time_info(%x, %x, %d, %d, %d) failed\n", val0, client_ID, val2,
+			(int) time_info_ptr->time_utc, (int) time_info_ptr->uncertainty);
+		exit(-1);
+	}
+	pr_dbg_xtra("pdsm_xtra_inject_time_info(%x, %x, %d, %d, %d)=%d, cs=%d\n", val0, client_ID, val2,
+		(int) time_info_ptr->time_utc, (int) time_info_ptr->uncertainty, res, cs);
+	return res;
+}
+
 int pdsm_client_get_position(struct CLIENT *clnt, int val0, int val1, int val2, int val3, int val4, int val5, int val6, int val7, int val8, int val9, int val10, int val11, int val12, int val13, int val14, int val15, int val16, int val17, int val18, int val19, int val20, int val21, int val22, int val23, int val24, int val25, int val26, int val27) {
 	struct params par;
 	uint32_t res;
@@ -428,12 +556,20 @@ void dispatch_pdsm_ext(uint32_t *data) {
 
 void dispatch_pdsm(uint32_t *data) {
 	uint32_t procid=ntohl(data[5]);
-	if(procid==1)
-		dispatch_pdsm_pd(&(data[10]));
-	else if(procid==4)
-		dispatch_pdsm_ext(&(data[10]));
-	else
-		LOGE("dispatch_pdsm() received unknown procid: %d",procid);
+	switch(procid) {
+		case 1:
+			dispatch_pdsm_pd(&(data[10]));
+			break;
+		case 4:
+			dispatch_pdsm_ext(&(data[10]));
+			break;
+		case 5:
+			/* XTRA Related? Don't know how to interpret. */
+			/* Introduce this as an option to calm down the LOGE print-out below. */
+			break;
+		default:
+			LOGE("dispatch_pdsm() received unknown procid: %d",procid);
+	}
 }
 
 void dispatch_atl(uint32_t *data) {
@@ -634,6 +770,27 @@ int init_gps_rpc() {
 #endif
 
 	return -1;
+}
+
+int gps_xtra_set_data(unsigned char *xtra_data_ptr, uint32_t part_len, uint8_t part, uint8_t total_parts)
+{
+	uint32_t res = -1;
+	res = pdsm_xtra_set_data(_clnt, 0, client_IDs[0xb], 0, xtra_data_ptr, part_len, part, total_parts, 1);
+	return res;
+}
+
+extern int64_t elapsed_realtime();
+int gps_xtra_inject_time_info(GpsUtcTime time, int64_t timeReference, int uncertainty)
+{
+	uint32_t res = -1;
+	pdsm_xtra_time_info_type time_info_ptr;
+	time_info_ptr.uncertainty = uncertainty;
+	time_info_ptr.time_utc = time;
+	time_info_ptr.time_utc += (int64_t)(elapsed_realtime() - timeReference);
+	time_info_ptr.ref_to_utc_time = 1;
+	time_info_ptr.force_flag = 1;
+	res = pdsm_xtra_inject_time_info(_clnt, 0, client_IDs[0xb], 0, &time_info_ptr);
+	return res;
 }
 
 void gps_get_position() {

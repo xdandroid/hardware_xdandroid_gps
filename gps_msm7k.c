@@ -15,7 +15,9 @@
 
 #include <hardware/gps.h>
 
+#define XTRA_BLOCK_SIZE  400
 #define  GPS_DEBUG  0
+#define XTRA_DEBUG 1
 
 #if GPS_DEBUG
 #  define  D(...)   LOGD(__VA_ARGS__)
@@ -23,6 +25,12 @@
 #else
 #  define  D(...)   ((void)0)
 #  define  V(...)   ((void)0)
+#endif
+
+#if XTRA_DEBUG
+#  define pr_dbg_xtra(...)   LOGD(__VA_ARGS__)
+#else
+#  define  pr_dbg_xtra(...)   ((void)0)
 #endif
 
 /* Functions from RPC driver */
@@ -189,6 +197,8 @@ typedef struct {
     int                     init;
     int                     fd;
     GpsCallbacks            callbacks;
+    GpsXtraCallbacks        xtra_callbacks;
+    AGpsCallbacks           agps_callbacks;
     int                     control[2];
     pthread_t               thread;
     pthread_mutex_t         update_mutex;
@@ -911,16 +921,130 @@ static void gps_state_deinit(GpsState*  state) {
 /*****                                                       *****/
 /*****************************************************************/
 /*****************************************************************/
+/***** GpsXtraInterface *****/
+
+static int gps_xtra_init(GpsXtraCallbacks* callbacks) {
+    pr_dbg_xtra("%s() is called", __func__);
+    GpsState*  s = _gps_state;
+
+    s->xtra_callbacks = *callbacks;
+
+    return 0;
+}
+
+static int gps_xtra_inject_xtra_data(char* data, int length) {
+    pr_dbg_xtra("%s(): xtra size = %d, data ptr = 0x%x\n", __func__, length, (int) data);
+    GpsState*  s = _gps_state;
+    if (!s->init)
+        return 0;
+
+    int rpc_ret_val = -1;
+    int ret_val = -1;
+    unsigned char *xtra_data_ptr;
+    uint32_t  part_len;
+    uint8_t   part;
+    uint8_t   total_parts;
+    uint16_t  len_injected;
+
+    total_parts = (length / XTRA_BLOCK_SIZE);
+    if ((total_parts % XTRA_BLOCK_SIZE) != 0)
+    {
+        total_parts += 1;
+    }
+
+    len_injected = 0; // O bytes injected
+    // XTRA injection starts with part 1
+    for (part = 1; part <= total_parts; part++)
+    {
+        part_len = XTRA_BLOCK_SIZE;
+        if (XTRA_BLOCK_SIZE > (length - len_injected))
+        {
+            part_len = length - len_injected;
+        }
+        xtra_data_ptr = data + len_injected;
+#if 0
+        pr_dbg_xtra("%s(): inject part = %d/%d, len = %d\n", __func__, part, total_parts, part_len);
+#endif
+        if (part < total_parts)
+        {
+            rpc_ret_val = gps_xtra_set_data(xtra_data_ptr, part_len, part, total_parts);
+            if (!rpc_ret_val)
+            {
+                LOGE("gps_xtra_set_data() for xtra returned %d, part=%d/%d, len=%d; aborting! \n", rpc_ret_val, part, total_parts, part_len);
+                ret_val = EINVAL; // return error
+                break;
+            }
+        }
+        else // part == total_parts
+        {
+            ret_val = gps_xtra_set_data(xtra_data_ptr, part_len, part, total_parts);
+            break; // done with injection
+        }
+
+        len_injected += part_len;
+    }
+
+    return ret_val;
+}
+
+static const GpsXtraInterface  sGpsXtraInterface = {
+    sizeof(GpsXtraInterface),
+    gps_xtra_init,
+    gps_xtra_inject_xtra_data,
+};
+
+/***** AGpsInterface *****/
+
+static void agps_init(AGpsCallbacks* callbacks) {
+    pr_dbg_xtra("%s() is called", __func__);
+    GpsState*  s = _gps_state;
+    s->agps_callbacks = *callbacks;
+
+}
+
+static int agps_data_conn_open(const char* apn) {
+    pr_dbg_xtra("%s(): apn=%s", __func__, apn);
+    /* not yet implemented */
+    return 0;
+}
+
+static int agps_data_conn_closed() {
+    pr_dbg_xtra("%s() is called", __func__);
+    /* not yet implemented */
+    return 0;
+}
+
+static int agps_data_conn_failed() {
+    pr_dbg_xtra("%s() is called", __func__);
+    /* not yet implemented */
+    return 0;
+}
+
+static int agps_set_server(AGpsType type, const char* hostname, int port) {
+    pr_dbg_xtra("%s(): type=%d, hostname=%s, port=%d", __func__, type, hostname, port);
+    /* not yet implemented */
+    return 0;
+}
+
+static const AGpsInterface  sAGpsInterface = {
+    sizeof(AGpsInterface),
+    agps_init,
+    agps_data_conn_open,
+    agps_data_conn_closed,
+    agps_data_conn_failed,
+    agps_set_server,
+};
 
 static int gps_init(GpsCallbacks* callbacks) {
     GpsState* state = _gps_state;
 
-    D("%s", __func__);
+    LOGI("%s", __func__);
 
     state->callbacks = *callbacks;
 
     if (!state->init)
         gps_state_init(state);
+
 
     return 0;
 }
@@ -928,7 +1052,7 @@ static int gps_init(GpsCallbacks* callbacks) {
 static void gps_cleanup() {
     GpsState* state = _gps_state;
 
-    D("%s", __func__);
+    LOGI("%s", __func__);
 
     if (state->init)
         gps_state_deinit(state);
@@ -938,11 +1062,11 @@ static int gps_start() {
     GpsState* state = _gps_state;
 
     if (!state->init) {
-        D("%s: called with uninitialized state !!", __FUNCTION__);
+        LOGI("%s: called with uninitialized state !!", __func__);
         gps_state_init(state);
     }
 
-    D("%s", __func__);
+    LOGI("%s", __func__);
 
     gps_state_thread_ctl(state, CMD_START);
     return 0;
@@ -952,28 +1076,37 @@ static int gps_stop() {
     GpsState* state = _gps_state;
 
     if (!state->init) {
-        D("%s: called with uninitialized state !!", __FUNCTION__);
+        LOGI("%s: called with uninitialized state !!", __func__);
         return -1;
     }
 
-    D("%s", __func__);
+    LOGI("%s", __func__);
 
     gps_state_thread_ctl(state, CMD_STOP);
     return 0;
 }
 
 static int gps_inject_time(GpsUtcTime time, int64_t timeReference, int uncertainty) {
-    D("%s", __func__);
+    pr_dbg_xtra("%s(): time=%lld, timeReference=%lld, uncertainty=%d", __func__, time, timeReference, uncertainty);
+    GpsState*  s = _gps_state;
+    if (!s->init)
+        return 0;
+    /* detule: Causes ARM9 crash on RHOD400, disable for now */
+/*
+    int ret_val = -1;
+    ret_val = gps_xtra_inject_time_info(time, timeReference, uncertainty);
+    return ret_val;
+*/
     return 0;
 }
 
 static int gps_inject_location(double latitude, double longitude, float accuracy) {
-    D("%s", __func__);
+    pr_dbg_xtra("%s", __func__);
     return 0;
 }
 
 static void gps_delete_aiding_data(GpsAidingData flags) {
-    D("%s", __func__);
+    pr_dbg_xtra("%s", __func__);
 }
 
 static int gps_set_position_mode(GpsPositionMode mode,
@@ -998,6 +1131,12 @@ static int gps_set_position_mode(GpsPositionMode mode,
 }
 
 static const void* gps_get_extension(const char* name) {
+    pr_dbg_xtra("%s('%s') is called", __func__, name);
+    if (!strcmp(name, GPS_XTRA_INTERFACE)) {
+        return &sGpsXtraInterface;
+    } else if (!strcmp(name, AGPS_INTERFACE)) {
+        return &sAGpsInterface;
+    }
     return NULL;
 }
 

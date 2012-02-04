@@ -14,7 +14,8 @@ LOCAL_C_INCLUDES += \
 LOCAL_SRC_FILES += \
 	gps.c \
 	gps_msm7k.c \
-	gps-rpc.c
+	gps-rpc.c \
+	time.cpp
 
 LOCAL_SHARED_LIBRARIES += \
 	libutils \
