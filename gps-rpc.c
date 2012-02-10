@@ -475,7 +475,7 @@ int pdsm_client_end_session(struct CLIENT *clnt, int id, int client) {
 	par.data[1]=0;
 	par.data[2]=0;
 	par.data[3]=client_IDs[client];
-	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xd : 0xe, xdr_args, &par, xdr_result_int, &res, timeout)) {
+	if(CLNT_CALL_CAST(clnt, amss==A6125 ? 0xc : 0xe, xdr_args, &par, xdr_result_int, &res, timeout)) {
 		LOGV("pdsm_client_end_session(%x, 0, 0, %x) failed\n", id, client_IDs[client]);
 		exit(-1);
 	}
