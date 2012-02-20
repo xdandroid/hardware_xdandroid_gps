@@ -574,7 +574,9 @@ enum state_thread_cmd {
     CMD_QUIT  = 0,
     CMD_START = 1,
     CMD_STOP  = 2,
-    CMD_SEND  = 3
+    CMD_SEND  = 3,
+    CMD_PAUSE = 4,
+    CMD_RESUME = 5
 };
 
 static void gps_state_thread_ctl(GpsState* state, enum state_thread_cmd val) {
@@ -729,6 +731,7 @@ static void gps_state_thread( void*  arg ) {
     NmeaReader  reader[1];
     int         epoll_fd   = epoll_create(2);
     int         started    = 0;
+    int         paused     = 0;
     int         gps_fd     = state->fd;
     int         control_fd = state->control[1];
 
@@ -795,6 +798,10 @@ static void gps_state_thread( void*  arg ) {
                                 V("%s: start", __func__);
                                 started = 1;
                             }
+                        } else if (cmd == CMD_PAUSE) {
+                            paused = 1;
+                        } else if (cmd == CMD_RESUME) {
+                            paused = 0;
                         } else if (cmd == CMD_STOP) {
                             if (started) {
                                 V("%s: stop", __func__);
@@ -835,7 +842,7 @@ static void gps_state_thread( void*  arg ) {
                 }
             }
         }
-        if (started) {
+        if (started && !paused) {
             gps_get_position();
         }
     }
@@ -938,6 +945,8 @@ static int gps_xtra_inject_xtra_data(char* data, int length) {
     if (!s->init)
         return 0;
 
+    gps_state_thread_ctl(s, CMD_PAUSE);
+
     int rpc_ret_val = -1;
     int ret_val = -1;
     unsigned char *xtra_data_ptr;
@@ -984,6 +993,7 @@ static int gps_xtra_inject_xtra_data(char* data, int length) {
         len_injected += part_len;
     }
 
+    gps_state_thread_ctl(s, CMD_RESUME);
     return ret_val;
 }
 
