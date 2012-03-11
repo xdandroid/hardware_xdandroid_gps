@@ -36,6 +36,7 @@
 /* Functions from RPC driver */
 extern void gps_get_position();
 extern void exit_gps_rpc();
+extern void start_gps_rpc();
 extern int init_gps_rpc();
 
 
@@ -797,6 +798,7 @@ static void gps_state_thread( void*  arg ) {
                             if (!started) {
                                 V("%s: start", __func__);
                                 started = 1;
+                                start_gps_rpc();
                             }
                         } else if (cmd == CMD_PAUSE) {
                             paused = 1;

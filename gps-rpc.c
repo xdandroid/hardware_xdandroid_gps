@@ -70,6 +70,7 @@ struct SVCXPRT {
 
 static uint32_t client_IDs[16];//highest known value is 0xb
 static uint32_t can_send=1; //To prevent from sending get_position when EVENT_END hasn't been received
+static int position_thread_active;
 
 struct params {
 	uint32_t *data;
@@ -800,12 +801,18 @@ void gps_get_position() {
 	}
 	LOGV("%s: waited %dms for can_send\n", __func__, i);
 	can_send = 0;
-	pdsm_client_get_position(_clnt, 0, 0, 1, 1, 1, 0x3B9AC9FF, 1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,32,2,client_IDs[2]);
+	if (position_thread_active)
+		pdsm_client_get_position(_clnt, 0, 0, 1, 1, 1, 0x3B9AC9FF, 1, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,32,2,client_IDs[2]);
 }
 
 void exit_gps_rpc() {
 	if(amss==A6125)
 		pdsm_client_end_session(_clnt, 0, 2);
+	position_thread_active = 0;
 	//5225 doesn't seem to like end_session ?
 	//Bah it ends session on itself after 10seconds.
+}
+
+void start_gps_rpc() {
+	position_thread_active = 1;
 }
